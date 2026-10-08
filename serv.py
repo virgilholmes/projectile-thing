@@ -6,7 +6,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
    return render_template("index.html")
-
+# shoot requests code
 @app.route('/shoot', methods=['POST'])
 def shoot():
     response = requests.post(
@@ -15,5 +15,5 @@ def shoot():
         timeout=5,
     )
     response.raise_for_status()
-
+    # this lets us stay on the page while also sending a page request
     return redirect(url_for('index'))
