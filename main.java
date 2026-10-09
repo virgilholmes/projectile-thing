@@ -30,6 +30,6 @@ public class main {
 
     // what ever is in this class is what is called when the shoot button is clicked
     public static void shoot() {
-        System.out.println("button clicked!");
+        System.out.println("The button has been clicked");
     }
 }
