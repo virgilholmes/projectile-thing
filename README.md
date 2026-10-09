@@ -1,4 +1,4 @@
-# ProjectileThing
+# ![](https://raw.githubusercontent.com/virgilholmes/projectile-thing/refs/heads/main/static/logo.png "Projectile-Thing Logo")
 
 Code for a "turret" robot I made for my AP CSA class.
 
