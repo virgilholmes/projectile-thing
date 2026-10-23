@@ -3,14 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <body style="background-color:black;">
-
     <title>Projectile-Thing</title>
+    <style>
+        html { background-color: black; color: white; }
+        h1, h2 { color: #ffffff; }
+        p { text-align: center; }
+        .controller-status {
+            text-align: center;
+            font-family: sans-serif;
+            font-size: 0.9rem;
+            color: #888888;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
-    <img src="{{ url_for('static', filename='projectilething.png') }}" height="20%" width="20%">
-    <form action="{{ url_for('shoot') }}" method="post">
+
+    <p>
+        <img src="{{ url_for('static', filename='logo.png') }}" height="20%" width="20%" alt="Logo">
+    </p>
+    
+    <form id="shootForm" action="{{ url_for('shoot') }}" method="post" style="text-align: center;">
         <button type="submit">Shoot</button>
     </form>
+     <form id="moveForm" action="{{ url_for('move') }}" method="post" style="text-align: center;">
+        <button type="submit">Move</button>
+    </form>
+    <div id="status" class="controller-status">Connect controller and press the trigger to shoot</div>
+
+    <script>
+        const form = document.getElementById('shootForm');
+        const form1 = document.getElementById('moveForm');
+        const statusDiv = document.getElementById('status');
+        const shootSound = new Audio("{{ url_for('static', filename='pew.mp3') }}");
+        shootSound.preload = 'auto';
+        const gamepads = navigator.getGamepads();
+        let wasAPressed = false;
+        let wasBPressed = false;
+
+
+        function playShootSound() {
+            shootSound.currentTime = 0;
+            shootSound.play().catch(error => {
+                console.warn('Could not play shoot sound:', error);
+            });
+        }
+
+        function triggerShoot() {
+            statusDiv.textContent = "Shooting!";
+            playShootSound();
+            fetch("{{ url_for('shoot') }}", { method: 'POST' });
+        }
+
+        function triggerMove() {
+            statusDiv.textContent = "Moving!";
+            fetch("{{ url_for('move') }}", { method: 'POST' });
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); // Prevents the browser from reloading the page
+            triggerShoot();
+        });
+
+        
+        function pollGamepad() {
+            const gamepads = navigator.getGamepads();
+            
+            // pretty sure this finds the gamepad
+            const controller = Array.from(gamepads).find(gp => gp !== null);
+            
+            if (controller) {
+                const buttonA = controller.buttons[7];
+                const buttonB = controller.buttons[1];
+
+                if (buttonA) {
+                    // updates the status if it was connected
+                    statusDiv.textContent = `Controller Connected!`;
+
+                    if (buttonA.pressed && !wasAPressed) {
+                        triggerShoot();
+                        if (controller && controller.vibrationActuator) {
+                            controller.vibrationActuator.playEffect('dual-rumble', {
+                            duration: 200,          // Duration in milliseconds
+                            startDelay: 0,          // Delay before starting in ms
+                            strongMagnitude: 1,   // Low-frequency motor (0.0 to 1.0)
+                            weakMagnitude: 0.8      // High-frequency buzz motor (0.0 to 1.0)
+                         });
+                        }
+                    }
+
+                    wasAPressed = buttonA.pressed;
+                }
+
+                if (buttonB) {
+                    if (buttonB.pressed && !wasBPressed) {
+                        statusDiv.textContent = "B";
+                        form1.submit();
+                    }
+
+                    wasBPressed = buttonB.pressed;
+                }
+            }
+            requestAnimationFrame(pollGamepad);
+        }
+
+        window.addEventListener('gamepadconnected', (e) => {
+            console.log("Gamepad connected:", e.gamepad.id);
+        });
+        pollGamepad();
+    </script>
 </body>
 </html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gamepad API - Button A</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    #status { font-size: 1.5rem; font-weight: bold; }
+    .pressed { color: green; }
+  </style>
+</head>
+<body>
+  <div id="status">Connect your Xbox controller and press A</div>
+
+  <script>
+    const statusDiv = document.getElementById('status');
+
+    window.addEventListener('gamepadconnected', (event) => {
+      console.log(`Gamepad connected: ${event.gamepad.id}`);
+      pollGamepad();
+    });
+
+    function pollGamepad() {
+      // Fetch the latest state of all connected gamepads
+      const gamepads = navigator.getGamepads();
+      const controller = gamepads[0]; // Gets the first connected controller
+
+      if (controller) {
+        // Standard mapping assigns Index 0 to the 'A' button (bottom face button)
+        const buttonA = controller.buttons[0];
+
+        if (buttonA.pressed) {
+          statusDiv.textContent = 'A Button Pressed!';
+          statusDiv.className = 'pressed';
+        } else {
+          statusDiv.textContent = 'Controller Connected. Press A!';
+          statusDiv.className = '';
+        }
+      }
+
+      // Continuously poll state on every animation frame
+      requestAnimationFrame(pollGamepad);
+    }
+  </script>
+</body>
+</html>
