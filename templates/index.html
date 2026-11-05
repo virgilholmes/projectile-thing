@@ -30,28 +30,78 @@
         <button type="submit">Move</button>
     </form>
     <div id="status" class="controller-status">Connect controller and press the trigger to shoot</div>
+    <p>
+        <button id="enableSound" type="button">Enable sound</button>
+        <span id="audioStatus" role="status">Enable sound before using the controller.</span>
+    </p>
 
     <script>
         const form = document.getElementById('shootForm');
         const form1 = document.getElementById('moveForm');
         const statusDiv = document.getElementById('status');
-        const shootSound = new Audio("{{ url_for('static', filename='pew.mp3') }}");
-        shootSound.preload = 'auto';
-        const gamepads = navigator.getGamepads();
+        const enableSoundButton = document.getElementById('enableSound');
+        const audioStatus = document.getElementById('audioStatus');
+        let audioContext;
+        let shootBufferPromise;
         let wasAPressed = false;
         let wasBPressed = false;
 
 
-        function playShootSound() {
-            shootSound.currentTime = 0;
-            shootSound.play().catch(error => {
-                console.warn('Could not play shoot sound:', error);
-            });
+        async function prepareShootSound(enableAudio = false) {
+            try {
+                audioContext ??= new AudioContext();
+                let resumePromise;
+                if (audioContext.state === 'suspended') {
+                    if (!enableAudio) {
+                        audioStatus.textContent = 'Click Enable sound to allow controller audio.';
+                        return null;
+                    }
+                    // Call resume during the click, before awaiting the sound file.
+                    resumePromise = audioContext.resume();
+                }
+                if (!shootBufferPromise) {
+                    shootBufferPromise = fetch("{{ url_for('static', filename='pew.mp3') }}")
+                        .then(response => {
+                            if (!response.ok) throw new Error(`Sound request failed: ${response.status}`);
+                            return response.arrayBuffer();
+                        })
+                        .then(data => audioContext.decodeAudioData(data))
+                        .catch(error => {
+                            shootBufferPromise = undefined;
+                            throw error;
+                        });
+                }
+                const [buffer] = await Promise.all([shootBufferPromise, resumePromise]);
+                if (audioContext.state !== 'running') {
+                    audioStatus.textContent = 'Click Enable sound to allow controller audio.';
+                    return null;
+                }
+                audioStatus.textContent = 'Sound enabled.';
+                return buffer;
+            } catch (error) {
+                audioStatus.textContent = 'Could not enable sound. Click Enable sound to retry.';
+                console.warn('Could not prepare shoot sound:', error);
+                return null;
+            }
         }
 
-        function triggerShoot() {
+        enableSoundButton.addEventListener('click', () => prepareShootSound(true));
+
+        async function playShootSound(enableAudio) {
+            const buffer = await prepareShootSound(enableAudio);
+            if (!buffer) return;
+
+            // Buffers are reusable, but every shot needs a separate playback source.
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.onended = () => source.disconnect();
+            source.start();
+        }
+
+        function triggerShoot(enableAudio = false) {
             statusDiv.textContent = "Shooting!";
-            playShootSound();
+            playShootSound(enableAudio);
             fetch("{{ url_for('shoot') }}", { method: 'POST' });
         }
 
@@ -62,7 +112,7 @@
 
         form.addEventListener('submit', (e) => {
             e.preventDefault(); // Prevents the browser from reloading the page
-            triggerShoot();
+            triggerShoot(true);
         });
 
         
