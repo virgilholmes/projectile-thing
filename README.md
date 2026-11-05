@@ -19,8 +19,13 @@ pip install -r requirements.txt
  ```
  #### Run the backend
 ```
-java main.java
+mvn package
+java --enable-native-access=ALL-UNNAMED -cp 'target/classes:target/dependency/*' main
 ```
+
+The backend requires Java 25 or newer and the motor wiring described below.
+Each POST to `/shoot` runs both motors for 200 milliseconds, then sets both
+outputs LOW. Change `motors.runFor(200)` in `main.java` to adjust the duration.
 
 ## Run the wheels with Java
 

@@ -5,7 +5,11 @@ import java.util.concurrent.TimeUnit;
 
 
 public class main {
+    private static motor motors;
+
     public static void main(String[] args) throws Exception {
+        motors = new motor();
+        Runtime.getRuntime().addShutdownHook(new Thread(motors::close, "motor-stop"));
         HttpServer server = HttpServer.create(
             new InetSocketAddress("localhost", 8080), 0
         );
@@ -40,7 +44,7 @@ public class main {
     // what ever is in this class is what is called when the shoot button is clicked
     public static void shoot() {
         try {
-            TimeUnit.MILLISECONDS.sleep(200); 
+            motors.runFor(200); // Run both motors for 200 milliseconds.
         } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
         }
